@@ -3,6 +3,9 @@ const router = express.Router();
 const mongoose = require("mongoose");
 const passport = require("passport");
 
+// Load Validation
+const validateProfileInput = require("../../validation/profile");
+
 // Load Profile Model
 
 const Profile = require("../../models/Profile");
@@ -31,6 +34,7 @@ router.get(
   (req, res) => {
     const errors = {};
     Profile.findOne({ user: req.user.id })
+      .populate("user", ["name", "avatar"])
       .then(profile => {
         if (!profile) {
           errors.noprofile = "There is no profile for this user";
@@ -50,7 +54,14 @@ router.post(
   "/",
   passport.authenticate("jwt", { session: false }),
   (req, res) => {
-    const errors = {};
+    // const errors = {};
+
+    const { errors, isValid } = validateProfileInput(req.body);
+    //CHeck Validation
+    if (!isValid) {
+      // Return errors with 400 status
+      return res.status(400).json(errors);
+    }
     //Get profile fields
 
     const profileFields = {};
@@ -68,7 +79,7 @@ router.post(
       profileFields.skills = req.body.skills.split(",");
     }
     // Social (need to intialize object first)
-    profilefields.social = {};
+    profileFields.social = {};
     if (req.body.youtube) profileFields.social.youtube = req.body.youtube;
     if (req.body.twitter) profileFields.social.twitter = req.body.twitter;
     if (req.body.facebook) profileFields.social.facebook = req.body.facebook;
